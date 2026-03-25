@@ -5,6 +5,11 @@ from src.models import UserModel
 app = Flask(__name__)
 app.register_blueprint(bp)
 
+# ✅ PAGINA DE PORTADA
+@app.route("/")
+def home():
+    return render_template("home.html")
+
 # ------ VISTA: LISTA DE USUARIOS ------
 @app.route("/web/users")
 def web_list():
@@ -19,7 +24,6 @@ def web_create():
         email = request.form["email"]
         UserModel.create_user(nombre, email)
         return redirect(url_for("web_list"))
-
     return render_template("user_form.html", action="create")
 
 # ------ VISTA: FORMULARIO EDITAR ------
