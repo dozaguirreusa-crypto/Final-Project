@@ -1,49 +1,57 @@
-from flask import Flask, render_template, request, redirect, url_for
-from src.routes import bp
-from src.models import UserModel
+from .db import get_connection
 
-app = Flask(__name__)
-app.register_blueprint(bp)
+class UserModel:
 
-# ✅ PAGINA DE PORTADA
-@app.route("/")
-def home():
-    return render_template("home.html")
+    @staticmethod
+    def create_user(name, email):
+        conn = get_connection()
+        cursor = conn.cursor()
+        query = "INSERT INTO users (name, email) VALUES (%s, %s)"
+        cursor.execute(query, (name, email))
+        conn.commit()
+        new_id = cursor.lastrowid
+        cursor.close()
+        conn.close()
+        return new_id
 
-# ------ VISTA: LISTA DE USUARIOS ------
-@app.route("/web/users")
-def web_list():
-    usuarios = UserModel.get_all()
-    return render_template("users_list.html", usuarios=usuarios)
+    @staticmethod
+    def get_user(user_id):
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE id=%s", (user_id,))
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return result
 
-# ------ VISTA: FORMULARIO CREAR ------
-@app.route("/web/users/create", methods=["GET", "POST"])
-def web_create():
-    if request.method == "POST":
-        nombre = request.form["name"]
-        email = request.form["email"]
-        UserModel.create_user(nombre, email)
-        return redirect(url_for("web_list"))
-    return render_template("user_form.html", action="create")
+    @staticmethod
+    def get_all():
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users")
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return rows
 
-# ------ VISTA: FORMULARIO EDITAR ------
-@app.route("/web/users/update/<int:user_id>", methods=["GET", "POST"])
-def web_update(user_id):
-    usuario = UserModel.get_user(user_id)
+    @staticmethod
+    def update_user(user_id, name, email):
+        conn = get_connection()
+        cursor = conn.cursor()
+        query = "UPDATE users SET name=%s, email=%s WHERE id=%s"
+        cursor.execute(query, (name, email, user_id))
+        conn.commit()
+        count = cursor.rowcount
+        cursor.close()
+        conn.close()
+        return int(count) > 0     # ✅ CORREGIDO
 
-    if request.method == "POST":
-        nombre = request.form["name"]
-        email = request.form["email"]
-        UserModel.update_user(user_id, nombre, email)
-        return redirect(url_for("web_list"))
-
-    return render_template("user_form.html", action="update", usuario=usuario)
-
-# ------ ACCIÓN: ELIMINAR ------
-@app.route("/web/users/delete/<int:user_id>")
-def web_delete(user_id):
-    UserModel.delete_user(user_id)
-    return redirect(url_for("web_list"))
-
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    @staticmethod
+    def delete_user(user_id):
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
