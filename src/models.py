@@ -43,14 +43,10 @@ class UserModel:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE users SET name=%s, email=%s WHERE id=%s;",
-            (name, email, user_id)
+        "UPDATE users SET name=%s, email=%s WHERE id=%s;",
+        (name, email, user_id)
         )
         conn.commit()
-        updated = cursor.rowcount > 0
-        cursor.close()
-        conn.close()
-        return updated
 
     @staticmethod
     def delete_user(user_id):
