@@ -5,24 +5,15 @@ from src.models import UserModel
 app = Flask(__name__)
 app.register_blueprint(bp)
 
-# -------------------------
-#   PÁGINA PRINCIPAL
-# -------------------------
 @app.route("/")
 def home():
     return render_template("home.html")
 
-# -------------------------
-#   LISTA DE USUARIOS
-# -------------------------
 @app.route("/web/users")
 def web_list():
     usuarios = UserModel.get_all()
     return render_template("users_list.html", usuarios=usuarios)
 
-# -------------------------
-#   CREAR USUARIO
-# -------------------------
 @app.route("/web/users/create", methods=["GET", "POST"])
 def web_create():
     if request.method == "POST":
@@ -32,9 +23,6 @@ def web_create():
         return redirect(url_for("web_list"))
     return render_template("user_form.html", action="create")
 
-# -------------------------
-#   EDITAR USUARIO
-# -------------------------
 @app.route("/web/users/update/<int:user_id>", methods=["GET", "POST"])
 def web_update(user_id):
     usuario = UserModel.get_user(user_id)
@@ -47,16 +35,10 @@ def web_update(user_id):
 
     return render_template("user_form.html", action="update", usuario=usuario)
 
-# -------------------------
-#   ELIMINAR USUARIO
-# -------------------------
 @app.route("/web/users/delete/<int:user_id>")
 def web_delete(user_id):
     UserModel.delete_user(user_id)
     return redirect(url_for("web_list"))
 
-# -------------------------
-#   DESARROLLO LOCAL
-# -------------------------
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0")
+    app.run(host="0.0.0.0", debug=False)
