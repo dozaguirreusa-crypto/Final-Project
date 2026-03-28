@@ -1,49 +1,108 @@
-from flask import Flask, render_template, request, redirect, url_for
-from src.routes import bp
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from src.models import UserModel
 
 app = Flask(__name__)
-app.register_blueprint(bp)
 
-# ✅ PAGINA DE PORTADA
+# ===============================
+# PÁGINA PRINCIPAL
+# ===============================
 @app.route("/")
 def home():
     return render_template("home.html")
 
-# ------ VISTA: LISTA DE USUARIOS ------
-@app.route("/web/users")
-def web_list():
-    usuarios = UserModel.get_all()
-    return render_template("users_list.html", usuarios=usuarios)
 
-# ------ VISTA: FORMULARIO CREAR ------
-@app.route("/web/users/create", methods=["GET", "POST"])
-def web_create():
+# ===============================
+# HEALTHCHECK (Render)
+# ===============================
+@app.route("/health")
+def health():
+    return jsonify(status="ok"), 200
+
+
+# ===============================
+# LISTAR USUARIOS
+# ===============================
+@app.route("/users", methods=["GET"])
+def get_all_users():
+    try:
+        users = UserModel.get_all()
+        return render_template("users_list.html", users=users)
+    except Exception as e:
+        return render_template(
+            "users_list.html",
+            users=[],
+            error=str(e)
+        )
+
+
+# ===============================
+# FORMULARIO CREAR USUARIO
+# ===============================
+@app.route("/users/create", methods=["GET", "POST"])
+def create_user():
     if request.method == "POST":
-        nombre = request.form["name"]
-        email = request.form["email"]
-        UserModel.create_user(nombre, email)
-        return redirect(url_for("web_list"))
-    return render_template("user_form.html", action="create")
+        try:
+            name = request.form.get("name")
+            email = request.form.get("email")
 
-# ------ VISTA: FORMULARIO EDITAR ------
-@app.route("/web/users/update/<int:user_id>", methods=["GET", "POST"])
-def web_update(user_id):
-    usuario = UserModel.get_user(user_id)
+            if not name or not email:
+                return render_template(
+                    "user_form.html",
+                    error="Todos los campos son obligatorios"
+                )
 
-    if request.method == "POST":
-        nombre = request.form["name"]
-        email = request.form["email"]
-        UserModel.update_user(user_id, nombre, email)
-        return redirect(url_for("web_list"))
+            UserModel.create_user(name, email)
+            return redirect(url_for("get_all_users"))
 
-    return render_template("user_form.html", action="update", usuario=usuario)
+        except Exception as e:
+            return render_template(
+                "user_form.html",
+                error=str(e)
+            )
 
-# ------ ACCIÓN: ELIMINAR ------
-@app.route("/web/users/delete/<int:user_id>")
-def web_delete(user_id):
-    UserModel.delete_user(user_id)
-    return redirect(url_for("web_list"))
+    return render_template("user_form.html")
 
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+
+# ===============================
+# FORMULARIO EDITAR USUARIO
+# ===============================
+@app.route("/users/edit/<int:user_id>", methods=["GET", "POST"])
+def update_user(user_id):
+    try:
+        user = UserModel.get_user(user_id)
+        if not user:
+            return redirect(url_for("get_all_users"))
+
+        if request.method == "POST":
+            name = request.form.get("name")
+            email = request.form.get("email")
+
+            if not name or not email:
+                return render_template(
+                    "user_form.html",
+                    user=user,
+                    error="Todos los campos son obligatorios"
+                )
+
+            UserModel.update_user(user_id, name, email)
+            return redirect(url_for("get_all_users"))
+
+        return render_template("user_form.html", user=user)
+
+    except Exception as e:
+        return render_template(
+            "user_form.html",
+            error=str(e)
+        )
+
+
+# ===============================
+# ELIMINAR USUARIO
+# ===============================
+@app.route("/users/delete/<int:user_id>", methods=["POST"])
+def delete_user(user_id):
+    try:
+        UserModel.delete_user(user_id)
+    except Exception:
+        pass
+    return redirect(url_for("get_all_users"))

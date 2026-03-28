@@ -1,44 +1,33 @@
-
 # -------- STAGE 1: Builder --------
-FROM python:3.10-alpine AS builder
+FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
-# Instalar dependencias necesarias para compilar extensiones
-RUN apk add --no-cache \
-    build-base \
-    linux-headers \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     libffi-dev \
-    openssl-dev
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copiar requerimientos e instalarlos en un directorio aislado
 COPY requirements.txt .
-
-COPY . .
-
-
 RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 
+COPY . .
 
 # -------- STAGE 2: Runtime --------
-FROM python:3.10-alpine
+FROM python:3.10-slim
 
 WORKDIR /app
 
-# Instalar librerías mínimas necesarias en runtime
-RUN apk add --no-cache \
-    libstdc++ \
-    libffi \
-    openssl
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libffi8 \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copiar dependencias del builder
 COPY --from=builder /install /usr/local
 
-# Copiar aplicación
 COPY . .
 
-# Exponer puerto de Gunicorn
 EXPOSE 5000
 
-# Ejecutar con Gunicorn (usa tu archivo app.py con variable app = Flask(...))
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
